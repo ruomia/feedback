@@ -30,3 +30,12 @@ export function problemDelete(data) {
         data: data
     });
 }
+
+// 日志
+export function problemLog(data) {
+    return axios({
+        url: "/admin/problem/log",
+        method: "post",
+        data: data
+    })
+}

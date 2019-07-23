@@ -62,7 +62,6 @@
                         >查询</el-button
                     >
                     <el-button
-                        v-if="addBtnIsDisplay"
                         type="primary"
                         @click.native="handleForm(null, null)"
                         >新增</el-button
@@ -75,6 +74,23 @@
             </el-form-item>
         </el-form>
         <el-table v-loading="loading" :data="list" style="width: 100%;">
+            <el-table-column type="expand">
+                <template slot-scope="props">
+                    <el-form label-position="left" inline class="demo-table-expand"  v-if="props.row.logs.length">
+                        <el-form-item :label="v.nickname || '匿名者'"  v-for="(v,k) in props.row.logs" :key="k">
+                            <span>{{ v.content }}</span>
+                        </el-form-item>
+                    </el-form>
+                    <el-alert
+                        v-else
+                        title="该问题暂时没有日志"
+                        type="warning"
+                        :closable="false">
+                    </el-alert>
+                    
+                </template>
+                
+            </el-table-column>
             <el-table-column label="编号" type="index"> </el-table-column>
             <el-table-column label="问题内容" prop="content"> </el-table-column>
             <el-table-column label="优先级" sortable prop="weigh">
@@ -86,7 +102,7 @@
             <el-table-column label="提出人" prop="nickname"> </el-table-column>
             <el-table-column label="状态">
                 <template slot-scope="scope">
-                    <el-tag :type="scope.row.status | statusFilterType">{{
+                    <el-tag :type="scope.row.status | statusFilterType" @click="handleStatusForm(scope.$index, scope.row)">{{
                         scope.row.status | statusFilterName
                     }}</el-tag>
                 </template>
@@ -98,30 +114,44 @@
             <el-table-column label="操作" fixed="right" width="200">
                 <template slot-scope="scope">
                     <el-button
-                        v-if="editBtnIsDisplay"
+                        type="text"
+                        size="small"
+                        @click.native="handleLogForm(scope.$index, scope.row)"
+                        >日志</el-button
+                    >
+                    <el-button
+                        v-if="!scope.row.logs.length"
                         type="text"
                         size="small"
                         @click.native="handleForm(scope.$index, scope.row)"
                         >编辑</el-button
                     >
                     <el-button
-                        v-if="delBtnIsDisplay"
+                        v-if="!scope.row.logs.length"
                         type="text"
                         size="small"
                         @click.native="handleDel(scope.$index, scope.row)"
                         :loading="deleteLoading"
                         >删除</el-button
                     >
+                    <el-button
+                        v-if="scope.row.logs.length"
+                        type="text"
+                        size="small"
+                        @click.native="handleForm(scope.$index, scope.row)"
+                        >查看</el-button
+                    >
                    
                 </template>
             </el-table-column>
         </el-table>
-
+        
         <el-pagination
             :page-size="query.limit"
             @current-change="handleCurrentChange"
             layout="prev, pager, next"
             :total="total"
+            :current-page="query.page"
         >
         </el-pagination>
 
@@ -133,7 +163,7 @@
             width="85%"
             top="5vh"
         >
-            <el-form :model="formData" :rules="formRules" ref="dataForm">
+            <el-form :model="formData" :rules="formRules" ref="dataForm" :disabled="checkData">
                 <el-row :gutter="20">
                     <el-col :span="12">
                         <el-form-item label="问题类型" prop="type_id">
@@ -227,8 +257,35 @@
             <div slot="footer" class="dialog-footer">
                 <el-button @click.native="hideForm">取消</el-button>
                 <el-button
+                    :disabled="checkData"
                     type="primary"
                     @click.native="formSubmit()"
+                    :loading="formLoading"
+                    >提交</el-button
+                >
+            </div>
+        </el-dialog>
+        <!--日志表单-->
+        <el-dialog
+            title="添加问题日志"
+            :visible.sync="logFormVisible"
+            :before-close="hideLogForm"
+            width="56%"
+            top="5vh"
+        >
+            <el-form :model="formData" :rules="formRules" ref="dataForm" >
+                <el-form-item label="日志内容">
+                    <el-input
+                        v-model="log.content"
+                        auto-complete="off"
+                    ></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="hideLogForm">取消</el-button>
+                <el-button
+                    type="primary"
+                    @click.native="logFormSubmit()"
                     :loading="formLoading"
                     >提交</el-button
                 >
@@ -238,11 +295,28 @@
         <el-dialog :visible.sync="dialogVisible">
             <img width="100%" :src="dialogImageUrl" alt="" />
         </el-dialog>
+        <!-- 状态表示 -->
+        <el-dialog :visible.sync="statusFormVisible" title="修改状态">
+            <el-radio-group label="问题状态" v-model="statusForm.status">
+                <el-radio :label="0" border>待处理</el-radio>
+                <el-radio :label="1" border>已解决</el-radio>
+                <el-radio :label="2" border>未解决</el-radio>
+            </el-radio-group>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click.native="hideStatusForm">取消</el-button>
+                <el-button
+                    type="primary"
+                    @click.native="statusFormSubmit()"
+                    :loading="formLoading"
+                    >提交</el-button
+                >
+            </div>
+        </el-dialog>
     </div>
 </template>
 
 <script>
-import { problemList, problemSave, problemDelete } from "../../api/problem";
+import { problemList, problemSave, problemDelete, problemLog } from "../../api/problem";
 import { typeList } from "../../api/type";
 import { moduleList } from "../../api/module";
 import { remove } from "../../api/file";
@@ -267,7 +341,7 @@ export default {
                 path: "",
                 type_id: "",
                 page: 1,
-                limit: 20,
+                limit: 10,
                 time: [],
                 timeType: "0"
             },
@@ -280,6 +354,7 @@ export default {
                 label: "title"
             },
             authLoading: false,
+            authFormVisible: false,
             authFormVisible: false,
             authFormData: {
                 role_id: "",
@@ -294,6 +369,7 @@ export default {
             },
             formLoading: false,
             formVisible: false,
+            logFormVisible: false,
             formData: formJson,
             formRules: {
                 name: [
@@ -313,12 +389,8 @@ export default {
             },
             selectedOptions: [],
             fileList: [],
-            fileUploadList: [],
             dialogImageUrl: "",
             dialogVisible: false,
-            addBtnIsDisplay: true,
-            editBtnIsDisplay: true,
-            delBtnIsDisplay: true,
             pickerOptions: {
                 shortcuts: [
                     {
@@ -356,29 +428,20 @@ export default {
                     }
                 ]
             },
-            imgUrl: IMG_BASE_URL + "admin/upload/save"
+            imgUrl: IMG_BASE_URL + "admin/upload/save",
+            log: {
+                problem_id: "",
+                content: "",
+            },
+            checkData: false,
+            statusForm: {
+                id: "",
+                status: ""
+            },
+            statusFormVisible: false
         };
     },
     methods: {
-        btnIsDisplay() {
-            let authRules = this.$store.getters.authRules;
-            let result = authRules.findIndex(value => value === "admin");
-            if (result === 0) {
-                return;
-            }
-            result = authRules.findIndex(value => value === "problem/add");
-            if (result < 0) {
-                this.addBtnIsDisplay = false;
-            }
-            result = authRules.findIndex(value => value === "problem/edit");
-            if (result < 0) {
-                this.editBtnIsDisplay = false;
-            }
-            result = authRules.findIndex(value => value === "problem/del");
-            if (result < 0) {
-                this.delBtnIsDisplay = false;
-            }
-        },
         onReset() {
             this.$router.push({
                 path: ""
@@ -388,7 +451,7 @@ export default {
                 path: "",
                 type_id: "",
                 page: 1,
-                limit: 20
+                limit: 10,
             };
 
             this.selectedOptions = [];
@@ -452,6 +515,8 @@ export default {
         hideForm() {
             // 更改值
             this.formVisible = !this.formVisible;
+            // 清空文件列表
+            this.fileList = [];
             return true;
         },
         // 显示表单
@@ -462,11 +527,13 @@ export default {
                 this.formData = Object.assign({}, row);
             }
             this.formName = "add";
-            let path = [];
 
+            
+            let path = [];
             if (index !== null) {
                 this.index = index;
                 this.formName = "edit";
+                this.checkData = row.logs.length ? true : false;
                 if (row.images) {
                     if (typeof row.images === "string") {
                         let arr = [];
@@ -489,7 +556,68 @@ export default {
                     }
                 });
             }
-            this.selectedOptions = path;
+            this.selectedOptions = path;        
+        },
+        // 显示日志表单
+        handleLogForm(index, row) {
+            this.logFormVisible = true;
+            this.log.problem_id = row.id;
+            this.index = index;
+        },
+        // 隐藏日志表单
+        hideLogForm() {
+            // 更改值
+            this.logFormVisible = !this.logFormVisible;
+            // 清空文件列表
+            return true;
+        },
+        // 日志表单提交
+        logFormSubmit(){
+            this.formLoading = true;
+            problemLog(this.log) 
+                .then(response => {
+                    this.formLoading = false;
+                    if (response.code) {
+                        this.$message.error(response.message);
+                        return false;
+                    }
+                    this.$message.success("操作成功");
+                    this.logFormVisible = false;
+                    this.list[this.index].logs.unshift(response.data);
+                    // 刷新表单
+                    this.log = {};
+                })
+        },
+        // 显示状态表单
+        handleStatusForm(index, row) {
+            this.statusFormVisible = true;
+            this.statusForm = {id: row.id, status: row.status};
+            this.index = index;
+        },
+        // 隐藏状态表单
+        hideStatusForm() {
+            // 更改值
+            this.statusFormVisible = !this.statusFormVisible;
+            // 清空文件列表
+            return true;
+        },
+        // 状态表单提交
+        statusFormSubmit(){
+            this.formLoading = true;
+            let data = Object.assign({}, this.statusForm);
+            problemSave(data, 'edit') 
+                .then(response => {
+                    this.formLoading = false;
+                    if (response.code) {
+                        this.$message.error(response.message);
+                        return false;
+                    }
+                    this.$message.success("操作成功");
+                    this.statusFormVisible = false;
+                    this.list[this.index].status = data.status;
+                    // 刷新表单
+                    this.statusForm = {};
+                })
         },
         editOption() {
             let option = this.selectedOptions;
@@ -511,7 +639,6 @@ export default {
                     let data = Object.assign({}, this.formData);
                     data.images = this.fileList;
                     // return false;
-                    // 获取选中的权限
                     problemSave(data, this.formName)
                         .then(response => {
                             this.formLoading = false;
@@ -526,7 +653,7 @@ export default {
                                 if (response.data && response.data.id) {
                                     data.id = response.data.id;
                                     // this.list.unshift(data);
-                                    this.list.push(data);
+                                    this.list.push(response.data);
                                     this.total++;
                                 }
                             } else {
@@ -577,7 +704,6 @@ export default {
             remove(file)
         },
         handleSuccess(file) {
-            // console.log(file, fileList);
             this.fileList.push({ url: file.data.src });
         },
         handlePictureCardPreview(file) {
@@ -608,9 +734,30 @@ export default {
         this.getList();
         this.getTypeList();
         this.getModuleList();
-
-        // 判断权限
-        this.btnIsDisplay();
     }
 };
 </script>
+
+<style>
+  .demo-table-expand {
+    font-size: 0;
+  }
+  .demo-table-expand label {
+    width: 90px;
+    color: #99a9bf;
+  }
+  .demo-table-expand .el-form-item {
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+  /* 下拉菜单 */
+  .el-dropdown-link {
+    cursor: pointer;
+    color: #409EFF;
+  }
+  .el-icon-arrow-down {
+    font-size: 12px;
+  }
+</style>

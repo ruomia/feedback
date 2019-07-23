@@ -19,7 +19,7 @@ class Admin extends Model
     {
         $list = $this
             // ->with('role')
-            ->field('id,username,status,department,create_time,update_time')
+            ->field('id,username,nickname,status,department,create_time,update_time')
             // ->hidden(['role'=>['rules','pid','status','pivot']])
             ->where($where)
             ->order($order)

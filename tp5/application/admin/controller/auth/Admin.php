@@ -55,7 +55,6 @@ class Admin extends Backend
         }
         $params['password'] = md5($params['password']);
         $params['avatar'] = '/assets/img/avatar.png';
-        $params['nickname'] = '管理员';
         $params['email'] = '123@163.com';
         $result = AdminModel::create($params);
         if (!$result){
@@ -105,6 +104,8 @@ class Admin extends Backend
         }
         $row->department = $params['department'];
         $row->status = $params['status'];
+        $row->nickname = $params['nickname'];
+
         $row->save();
 
 

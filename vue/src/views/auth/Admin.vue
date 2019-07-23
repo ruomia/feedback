@@ -49,6 +49,8 @@
             <el-table-column label="用户 ID" prop="id" fixed> </el-table-column>
             <el-table-column label="用户名" prop="username" fixed>
             </el-table-column>
+            <el-table-column label="昵称" prop="nickname" fixed>
+            </el-table-column>
             <el-table-column label="部门" prop="department" fixed>
             </el-table-column>
             <el-table-column label="状态">
@@ -96,6 +98,12 @@
                 <el-form-item label="用户名" prop="username">
                     <el-input
                         v-model="formData.username"
+                        auto-complete="off"
+                    ></el-input>
+                </el-form-item>
+                <el-form-item label="昵称" prop="nickname">
+                    <el-input
+                        v-model="formData.nickname"
                         auto-complete="off"
                     ></el-input>
                 </el-form-item>
@@ -159,6 +167,7 @@ const formJson = {
     id: "",
     password: "",
     username: "",
+    nickname: "",
     checkPassword: "",
     status: 1,
     roles: [],

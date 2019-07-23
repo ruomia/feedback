@@ -5,8 +5,10 @@ use app\admin\controller\Backend;
 use think\Validate;
 use think\facade\Request;
 use app\admin\model\Problem as ProblemModel;
+use app\admin\model\ProblemLog;
 use app\common\vo\ResultVo;
 use app\common\enums\ErrorCode;
+use Db;
 
  class Problem extends Backend
  {
@@ -39,10 +41,27 @@ use app\common\enums\ErrorCode;
             $where[] = ['problem.' . $timeType, 'between time', $time];
             $order = '';
         }
-        trace($where, 'tarace where');
-        $res = ProblemModel::getLists($where, $order);
-       
-        return ResultVo::success($res);
+        // trace($where, 'tarace where');
+        $page = Request::get('page', 1);
+        $limit = Request::get('limit', 10);
+
+        $list = $this->model::with(['logs'=>function($query){
+                        $query->order('id desc');
+                    }])
+                    ->field('problem.*,admin.nickname,admin.department')
+                    ->join('admin', 'problem.admin_id = admin.id')
+                    ->where($where)
+                    ->order($order)
+                    ->page($page)
+                    ->limit($limit)
+                    ->select();
+
+        $total = $this->model::where($where)
+                    ->order($order)
+                    ->count();
+        $result = array("total" => $total, "list" => $list);
+
+        return ResultVo::success($result);
     }
     /**
      * 添加
@@ -50,21 +69,13 @@ use app\common\enums\ErrorCode;
     public function add()
     {
         $params = Request::post();
-        // $validate = Validate::make([
-        //     'name|名称' => 'require|unique:module,name',
-        // ]);
-        // $result = $validate->check($params);
-        // if(!$result) {
-        //     return error($validate->getError());
-        // }
         $params['admin_id'] = $this->request->admin_id;
-        // $images = '';
-        // foreach($params['images'] as $k => $v) {
-        //     $images .= $v['url'];
-        // }
+     
         $params['images'] = implode(',', array_column($params['images'], 'url'));
         // $params
         $result = ProblemModel::create($params);
+        $result['nickname'] = $this->request->nickname;
+        $result['department'] =  $this->request->department;
         // trace($result, 'result');
         return ResultVo::success($result);
     }
@@ -82,25 +93,12 @@ use app\common\enums\ErrorCode;
         $row = ProblemModel::get($id);
         if (!$row)
             return ResultVo::error(ErrorCode::DATA_NOT, "类型不存在");
-        // 超级管理员组不允许修改
-        // $validate = Validate::make([
-        //     'pid|上级模块' => 'require',
-        //     'name|名称' => 'require|unique:module,name,' . $row->id,
-        // ]);
-        // if(!$validate->check($params)){
-        //     return ResultVo::error(ErrorCode::DATA_NOT, $validate->getError());
-        // }
-        $row->path = $params['path'];
-        $row->content = $params['content'];
-        $row->programme = $params['programme'];
-        $row->type_id = $params['type_id'];
-        $row->link = $params['link'];
-        $row->remark = $params['remark'];
-        $row->status = $params['status'];
-        $row->images = implode(',', array_column($params['images'], 'url'));
-        $row->serious = $params['serious'];
-        $row->weigh = $params['weigh'];
-        $result = $row->save();
+        
+        if(!empty($params['images'])) {
+            $params['images'] = implode(',', array_column($params['images'], 'url')) ;
+
+        }
+        $result = $row->save($params);
 
         if (!$result){
             return ResultVo::error(ErrorCode::DATA_CHANGE);
@@ -119,6 +117,24 @@ use app\common\enums\ErrorCode;
         }
         return ResultVo::success();
     }
+    
+    // 添加日志
+    public function log(){
+        $params = Request::post();
+        if($params) {
+            $params['nickname'] = $this->request->nickname;
+            $params['create_time'] = date("Y-m-d H:i:s");
 
+            $result = ProblemLog::create($params);
+
+            if(!$result) {
+                return ResultVo::error(ErrorCode::NOT_NETWORK);
+            }
+            return ResultVo::success($result);
+
+        }
+        return ResultVo::error(ErrorCode::NOT_NETWORK, '数据不能为空');
+      
+    }
   
 }

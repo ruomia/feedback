@@ -84,9 +84,10 @@ router.beforeEach((to, from, next) => {
                     ) {
                         Message.error("权限验证失败，请联系管理员~");
                         next({
-                            path: "/401",
+                            path: "/login",
                             query: { noGoBack: true }
                         });
+                
                         NProgress.done();
                         return;
                     }
@@ -104,7 +105,7 @@ router.beforeEach((to, from, next) => {
                 })
                 .catch(() => {
                     store.dispatch("fedLogout").then(() => {
-                        Message.error("验证失败,请重新登录role");
+                        Message.error("验证失败,请重新登录");
                         let redirect = to.fullPath;
                         store.dispatch("loginOut").then(() => {
                             next({

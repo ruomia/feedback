@@ -38,15 +38,10 @@ use app\common\vo\ResultVo;
      */
     public function userinfo()
     {
-        // 权限信息
-        $admin_id = $this->request->admin_id;
-        
-        $admin = AdminModel::where('id', $admin_id)
-                    ->field('id,username,avatar')
-                    ->find();
+        // 权限信息    
         return success([
-            'username'=> $admin->username,
-            'avatar'=> $admin->avatar,
+            'username'=> $this->request->nickname,
+            'avatar'=> '',
             'authRules'=>$this->request->authRules
         ]);
     }

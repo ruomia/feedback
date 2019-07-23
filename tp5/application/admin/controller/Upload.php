@@ -2,7 +2,7 @@
 
 namespace app\admin\controller;
 
-use app\admin\controller\Backend;
+use app\common\controller\Backend;
 use app\common\enums\ErrorCode;
 use app\common\utils\PublicFileUtils;
 use app\common\vo\ResultVo;
@@ -19,8 +19,7 @@ use think\Request;
 class Upload extends Backend
 {
     protected $middleware = [
-        'CORS',
-        'Check',
+        'CORS'
     ];
 
     /**
@@ -44,6 +43,7 @@ class Upload extends Backend
         trace($file, 'trace file');
         // 移动到框架应用根目录/uploads/目录下
         $info = $file->move('uploads');
+        trace(Env::get('app.domain'), 'domain');
         if($info){
             // 成功上传后，获取上传信息
             $result =  [

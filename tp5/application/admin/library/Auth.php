@@ -50,13 +50,16 @@ class Auth
         } else {
             $authRules = ['admin'];
         }
+        
         $now = time();
         // 定义令牌中的数据
         $data = [
             'iat' => $now,
             'exp' => $now + Env::get('jwt.expire'),
             'id' => $admin->id,
-            'authRules' => $authRules
+            'authRules' => $authRules,
+            'nickname' =>  $admin->nickname,
+            'department' => $admin->department
         ];
         // 生成令牌
         $jwt = JWT::encode($data, Env::get('jwt.key'));
