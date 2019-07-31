@@ -29,8 +29,8 @@ class Check
         {
             return json([
                 'code'=> 2,
-                'message'=>'登录已过期，请重新登录'
-                // 'message' => $e->getMessage()
+                // 'message'=>'登录已过期，请重新登录'
+                'message' => $e->getMessage()
             ]);
         }
         

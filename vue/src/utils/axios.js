@@ -38,9 +38,9 @@ service.interceptors.response.use(
     response => {
         const data = response.data;
         if (data.code) {
-            // Message.error(data.message);
 
             if (data.code === 2) {
+                Message.error(data.message);
                 store.dispatch("fedLogout").then(() => {
                     router.push({
                         path: "/login",

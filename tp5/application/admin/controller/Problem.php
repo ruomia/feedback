@@ -15,7 +15,7 @@ use Db;
     public function index()
     {
         $where = [];
-        $order = 'id ASC';
+        $order = 'id DESC';
         $status = Request::get('status', '');
         if ($status !== ''){
             $where[] = ['problem.status','=',intval($status)];
@@ -23,7 +23,7 @@ use Db;
         }
         $path = Request::get('path', '');
         if ($path !== ''){
-            $where[] = ['problem.path','=', $path];
+            $where[] = ['problem.path','in', $path];
             $order = '';
         }
 

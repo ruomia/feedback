@@ -6,10 +6,8 @@ use think\Validate;
 use think\Request;
 use app\facade\Admin;
 use app\admin\model\Admin as AdminModel;
-use app\admin\model\AuthRoleAdmin;
-use app\admin\model\AuthRule;
-use app\admin\model\AuthRuleRole;
 use app\common\vo\ResultVo;
+use app\common\enums\ErrorCode;
 
 /**
  * 后台首页
@@ -69,7 +67,7 @@ use app\common\vo\ResultVo;
             ];
             $result = $validate->check($data);
             if (!$result) {
-                $this->error($validate->getError());
+                return ResultVo::error(ErrorCode::DATA_NOT, $validate->getError());
             }
             $result = Admin::login($username, $password);
             if ($result) {
@@ -82,7 +80,7 @@ use app\common\vo\ResultVo;
                 $msg = Admin::getError();
                 $msg = $msg ? $msg : ('Username or password is incorrect');
                 // $this->error($msg);
-                return error($msg);
+                return ResultVo::error(ErrorCode::DATA_NOT, $msg);
             }
 
         }
@@ -94,5 +92,30 @@ use app\common\vo\ResultVo;
     public function logout()
     {
 
+    }
+
+    /**
+     * 修改密码
+     */
+    public function password(Request $req)
+    {
+        $params = $req->post();
+        if(!$params) {
+            return ResultVo::error(ErrorCode::DATA_NOT);
+        }
+        $admin = AdminModel::field('id,username,password')->get($req->admin_id);
+        if($admin->password == md5($params['old_password'])) {
+            $validate = Validate::make([
+                'new_password|新密码' => 'require|length:6,30',
+            ]);
+            $result = $validate->check($params);
+            if (!$result) {
+               return ResultVo::error(ErrorCode::DATA_NOT, $validate->getError());
+            }
+            $admin->password = md5($params['new_password']);
+            $admin->save();
+            return ResultVo::success();
+        }
+        return ResultVo::error(ErrorCode::DATA_NOT, '旧密码不正确，请重新输入！');
     }
 }

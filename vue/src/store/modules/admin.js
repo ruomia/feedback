@@ -10,7 +10,6 @@ import {
     removeAdminId
 } from "../../utils/auth";
 // import { $NOT_NETWORK } from '../../utils/errorCode'
-import { Message } from "element-ui";
 
 // initial state
 const state = {
@@ -41,13 +40,7 @@ const actions = {
         return new Promise((resolve, reject) => {
             loginName(userName, pwd)
                 .then(response => {
-                    if (response.code !== 0) {
-                        Message({
-                            message: response.msg,
-                            type: "error",
-                            duration: 5 * 1000
-                        });
-                    } else {
+                    if (response.code === 0) {
                         let data = response.data;
                         commit(types.RECEIVE_ADMIN_ID, 1);
                         commit(types.RECEIVE_ADMIN_TOKEN, data);

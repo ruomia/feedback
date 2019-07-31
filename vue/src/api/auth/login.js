@@ -29,7 +29,7 @@ export function logout(uid, token) {
 
 export function password(data) {
     return axios({
-        url: "/admin/auth/login/password",
+        url: "/admin/index/password",
         method: "post",
         data: data
     });
